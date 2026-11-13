@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="28" fill="#FAF6F0"/>
+  <!-- Journal cover/card -->
+  <rect x="22" y="18" width="84" height="92" rx="12" fill="#FFFFFF" stroke="#EFECE6" stroke-width="3"/>
+  <!-- Washi tape on top -->
+  <rect x="44" y="12" width="40" height="12" rx="3" fill="#A3C9A8" opacity="0.85" transform="rotate(-3 64 18)"/>
+  <!-- Journal spine line -->
+  <line x1="38" y1="20" x2="38" y2="108" stroke="#E5DEC9" stroke-width="2" stroke-dasharray="3 3"/>
+  <!-- Cozy bookmark ribbon -->
+  <path d="M78 18 L78 52 L84 46 L90 52 L90 18 Z" fill="#F4A28C"/>
+  <!-- Little coin/spark -->
+  <circle cx="62" cy="64" r="18" fill="#F9E29C" stroke="#F2E2A6" stroke-width="2"/>
+  <text x="62" y="71" font-family="'Nunito', sans-serif" font-size="19" font-weight="bold" fill="#6E5611" text-anchor="middle">₸</text>
+  <!-- Dot accents -->
+  <circle cx="48" cy="92" r="3.5" fill="#D8C2E8"/>
+  <circle cx="62" cy="92" r="3.5" fill="#A3C9A8"/>
+  <circle cx="76" cy="92" r="3.5" fill="#F4A28C"/>
+</svg>

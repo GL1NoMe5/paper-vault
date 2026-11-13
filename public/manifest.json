@@ -1,0 +1,19 @@
+{
+  "name": "Уютный Бюджет — Дневник Финансов",
+  "short_name": "Уютный Бюджет",
+  "description": "Уютный личный финансовый планировщик и дневник расходов",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF6F0",
+  "theme_color": "#FAF6F0",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ export interface JournalFeedProps {
   baseCurrency: CurrencyCode;
   rates: ExchangeRates;
   onDeleteTransaction: (id: string) => void;
+  onEditTransaction?: (transaction: Transaction) => void;
   categories?: Category[];
 }
 
@@ -23,6 +24,7 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
   baseCurrency,
   rates,
   onDeleteTransaction,
+  onEditTransaction,
   categories,
 }) => {
   const grouped = groupTransactionsByDate(transactions);
@@ -93,6 +95,7 @@ export const JournalFeed: React.FC<JournalFeedProps> = ({
                         baseCurrency={baseCurrency}
                         rates={rates}
                         onDelete={onDeleteTransaction}
+                        onEdit={onEditTransaction}
                         categories={categories}
                       />
                     </motion.div>

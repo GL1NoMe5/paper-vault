@@ -11,6 +11,7 @@ import { UpcomingBillsBanner } from '../components/calendar/UpcomingBillsBanner'
 import { PlannerCalendar } from '../components/calendar/PlannerCalendar';
 import { SubscriptionsList } from '../components/calendar/SubscriptionsList';
 import { AddSubscriptionDrawer } from '../components/calendar/AddSubscriptionDrawer';
+import { EditSubscriptionDrawer } from '../components/calendar/EditSubscriptionDrawer';
 import { CalendarView } from '../components/calendar/CalendarView';
 import { DEFAULT_RATES_RUB } from '../utils/currency';
 import { RecurringBill } from '../types';
@@ -230,6 +231,147 @@ describe('Tab 2 ("Календарь") & Subscriptions Planner Tests', () => {
       // Remaining should now be 750 ₽
       expect(screen.getByTestId('unpaid-bills-total')).toHaveTextContent('750 ₽');
       expect(screen.getByTestId('subscription-paid-badge-sub-yandex')).toHaveTextContent('Оплачено');
+    });
+
+    it('allows editing subscription and recalculates unpaid metric in real time', () => {
+      render(
+        <PlannerProvider>
+          <CalendarView />
+        </PlannerProvider>
+      );
+
+      // Initially unpaid is 1 049 ₽ (sub-yandex 299 + sub-internet 750)
+      expect(screen.getByTestId('unpaid-bills-total')).toHaveTextContent('1 049 ₽');
+
+      // Click edit on sub-yandex
+      const editBtn = screen.getByTestId('subscription-edit-btn-sub-yandex');
+      expect(editBtn).toBeInTheDocument();
+      fireEvent.click(editBtn);
+
+      // Edit drawer is open
+      expect(screen.getByTestId('edit-sub-drawer-container')).toBeInTheDocument();
+      const amountInput = screen.getByTestId('edit-sub-amount-input');
+      expect(amountInput).toHaveValue('299');
+
+      // Change amount to 500
+      fireEvent.change(amountInput, { target: { value: '500' } });
+
+      // Save
+      fireEvent.click(screen.getByTestId('edit-sub-submit-btn'));
+
+      // Drawer closed, unpaid now 500 + 750 = 1 250 ₽
+      expect(screen.queryByTestId('edit-sub-drawer-container')).not.toBeInTheDocument();
+      expect(screen.getByTestId('unpaid-bills-total')).toHaveTextContent('1 250 ₽');
+    });
+
+    it('allows deleting subscription and updates unpaid metric and list', () => {
+      render(
+        <PlannerProvider>
+          <CalendarView />
+        </PlannerProvider>
+      );
+
+      // Initially 3 subscriptions (sub-litres, sub-yandex, sub-internet)
+      expect(screen.getByTestId('subscription-item-sub-internet')).toBeInTheDocument();
+
+      // Click delete button on sub-internet
+      const deleteBtn = screen.getByTestId('subscription-delete-btn-sub-internet');
+      expect(deleteBtn).toBeInTheDocument();
+      fireEvent.click(deleteBtn);
+
+      // sub-internet is gone
+      expect(screen.queryByTestId('subscription-item-sub-internet')).not.toBeInTheDocument();
+
+      // Only sub-yandex is unpaid: 299 ₽
+      expect(screen.getByTestId('unpaid-bills-total')).toHaveTextContent('299 ₽');
+    });
+  });
+
+  describe('SubscriptionsList and EditSubscriptionDrawer Component Tests', () => {
+    it('SubscriptionsList renders edit and delete buttons with >= 44px touch targets', () => {
+      const handleEdit = vi.fn();
+      const handleDelete = vi.fn();
+
+      render(
+        <SubscriptionsList
+          bills={mockBills}
+          currentMonthKey="2026-11"
+          baseCurrency="RUB"
+          rates={DEFAULT_RATES_RUB}
+          onPayBill={vi.fn()}
+          onEditBill={handleEdit}
+          onDeleteBill={handleDelete}
+        />
+      );
+
+      const editBtn = screen.getByTestId('subscription-edit-btn-bill-1');
+      const deleteBtn = screen.getByTestId('subscription-delete-btn-bill-1');
+
+      expect(editBtn).toHaveClass('min-h-[44px]');
+      expect(editBtn).toHaveClass('min-w-[44px]');
+      expect(deleteBtn).toHaveClass('min-h-[44px]');
+      expect(deleteBtn).toHaveClass('min-w-[44px]');
+
+      fireEvent.click(editBtn);
+      expect(handleEdit).toHaveBeenCalledWith(mockBills[0]);
+
+      fireEvent.click(deleteBtn);
+      expect(handleDelete).toHaveBeenCalledWith('bill-1');
+    });
+
+    it('EditSubscriptionDrawer modifies fields and submits updates', () => {
+      const handleUpdate = vi.fn();
+      const handleClose = vi.fn();
+
+      render(
+        <EditSubscriptionDrawer
+          isOpen={true}
+          onClose={handleClose}
+          bill={mockBills[0]}
+          baseCurrency="RUB"
+          onUpdateBill={handleUpdate}
+        />
+      );
+
+      expect(screen.getByTestId('edit-sub-drawer-container')).toBeInTheDocument();
+
+      // Change title
+      fireEvent.change(screen.getByTestId('edit-sub-title-input'), { target: { value: 'Яндекс Плюс Мульти' } });
+      // Change amount
+      fireEvent.change(screen.getByTestId('edit-sub-amount-input'), { target: { value: '399' } });
+      // Change day
+      fireEvent.change(screen.getByTestId('edit-sub-day-input'), { target: { value: '25' } });
+
+      fireEvent.click(screen.getByTestId('edit-sub-submit-btn'));
+
+      expect(handleUpdate).toHaveBeenCalledWith('bill-1', expect.objectContaining({
+        title: 'Яндекс Плюс Мульти',
+        amount: 399,
+        dayOfMonth: 25,
+      }));
+      expect(handleClose).toHaveBeenCalled();
+    });
+
+    it('EditSubscriptionDrawer calls onDeleteBill when delete button clicked', () => {
+      const handleDelete = vi.fn();
+      const handleClose = vi.fn();
+
+      render(
+        <EditSubscriptionDrawer
+          isOpen={true}
+          onClose={handleClose}
+          bill={mockBills[0]}
+          baseCurrency="RUB"
+          onUpdateBill={vi.fn()}
+          onDeleteBill={handleDelete}
+        />
+      );
+
+      const delBtn = screen.getByTestId('edit-sub-delete-btn');
+      fireEvent.click(delBtn);
+
+      expect(handleDelete).toHaveBeenCalledWith('bill-1');
+      expect(handleClose).toHaveBeenCalled();
     });
   });
 });

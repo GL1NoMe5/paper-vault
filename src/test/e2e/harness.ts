@@ -816,9 +816,15 @@ export interface FinanceStore {
   setBaseCurrency: (code: CurrencyCode) => void;
   updateRates: (newRates: ExchangeRates) => void;
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => Transaction;
+  updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => Transaction | null;
   deleteTransaction: (id: string) => void;
   addCategory: (cat: Omit<Category, 'id'>) => Category;
   addRecurringBill: (bill: Omit<RecurringBill, 'id' | 'createdAt' | 'paidMonths'>) => RecurringBill;
+  updateRecurringBill: (id: string, updates: Partial<Omit<RecurringBill, 'id' | 'createdAt'>>) => RecurringBill | null;
+  deleteRecurringBill: (id: string) => void;
+  addDreamGoal: (goal: Omit<DreamGoal, 'id' | 'createdAt' | 'savedAmount' | 'celebratedMilestones'>) => DreamGoal;
+  updateDreamGoal: (id: string, updates: Partial<Omit<DreamGoal, 'id' | 'createdAt'>>) => DreamGoal | null;
+  deleteDreamGoal: (id: string) => void;
   markBillPaid: (billId: string, month: string) => Transaction | null;
   depositToGoal: (goalId: string, amount: number) => { triggeredMilestones: number[] };
   resetToDemoData: () => void;
@@ -874,6 +880,27 @@ export function createFinanceStore(initialState?: FinanceState): FinanceStore {
     };
   };
 
+  const updateTransaction = (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt'>>): Transaction | null => {
+    const index = state.transactions.findIndex(t => t.id === id);
+    if (index === -1) return null;
+    const existing = state.transactions[index];
+    const sanitizedAmount = updates.amount !== undefined
+      ? Math.max(0, Number.isFinite(updates.amount) ? updates.amount : existing.amount)
+      : existing.amount;
+    const updated: Transaction = {
+      ...existing,
+      ...updates,
+      amount: sanitizedAmount,
+    };
+    const nextTransactions = [...state.transactions];
+    nextTransactions[index] = updated;
+    state = {
+      ...state,
+      transactions: nextTransactions,
+    };
+    return updated;
+  };
+
   const addCategory = (cat: Omit<Category, 'id'>): Category => {
     const id = `cat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const newCat: Category = { ...cat, id };
@@ -893,6 +920,92 @@ export function createFinanceStore(initialState?: FinanceState): FinanceStore {
       recurringBills: [...state.recurringBills, newBill],
     };
     return newBill;
+  };
+
+  const updateRecurringBill = (id: string, updates: Partial<Omit<RecurringBill, 'id' | 'createdAt'>>): RecurringBill | null => {
+    const index = state.recurringBills.findIndex(b => b.id === id);
+    if (index === -1) return null;
+    const existing = state.recurringBills[index];
+    const sanitizedAmount = updates.amount !== undefined
+      ? Math.max(0, Number.isFinite(updates.amount) ? updates.amount : existing.amount)
+      : existing.amount;
+    const sanitizedDay = updates.dayOfMonth !== undefined
+      ? Math.min(31, Math.max(1, Math.round(updates.dayOfMonth)))
+      : existing.dayOfMonth;
+    const updated: RecurringBill = {
+      ...existing,
+      ...updates,
+      amount: sanitizedAmount,
+      dayOfMonth: sanitizedDay,
+    };
+    const nextBills = [...state.recurringBills];
+    nextBills[index] = updated;
+    state = {
+      ...state,
+      recurringBills: nextBills,
+    };
+    return updated;
+  };
+
+  const deleteRecurringBill = (id: string) => {
+    state = {
+      ...state,
+      recurringBills: state.recurringBills.filter(b => b.id !== id),
+    };
+  };
+
+  const addDreamGoal = (goal: Omit<DreamGoal, 'id' | 'createdAt' | 'savedAmount' | 'celebratedMilestones'>): DreamGoal => {
+    const id = `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const createdAt = new Date().toISOString();
+    const sanitizedTarget = Math.max(1, Number.isFinite(goal.targetAmount) ? goal.targetAmount : 1);
+    const newGoal: DreamGoal = {
+      ...goal,
+      id,
+      targetAmount: sanitizedTarget,
+      savedAmount: 0,
+      celebratedMilestones: [],
+      createdAt,
+    };
+    state = {
+      ...state,
+      goals: [...state.goals, newGoal],
+    };
+    return newGoal;
+  };
+
+  const updateDreamGoal = (id: string, updates: Partial<Omit<DreamGoal, 'id' | 'createdAt'>>): DreamGoal | null => {
+    const index = state.goals.findIndex(g => g.id === id);
+    if (index === -1) return null;
+    const existing = state.goals[index];
+    const sanitizedTarget = updates.targetAmount !== undefined
+      ? Math.max(1, Number.isFinite(updates.targetAmount) ? updates.targetAmount : existing.targetAmount)
+      : existing.targetAmount;
+    const sanitizedSaved = updates.savedAmount !== undefined
+      ? Math.max(0, Number.isFinite(updates.savedAmount) ? updates.savedAmount : existing.savedAmount)
+      : existing.savedAmount;
+    const pct = (sanitizedSaved / sanitizedTarget) * 100;
+    const celebrated = [25, 50, 75, 100].filter(m => pct >= m);
+    const updated: DreamGoal = {
+      ...existing,
+      ...updates,
+      targetAmount: sanitizedTarget,
+      savedAmount: sanitizedSaved,
+      celebratedMilestones: updates.celebratedMilestones ?? celebrated,
+    };
+    const nextGoals = [...state.goals];
+    nextGoals[index] = updated;
+    state = {
+      ...state,
+      goals: nextGoals,
+    };
+    return updated;
+  };
+
+  const deleteDreamGoal = (id: string) => {
+    state = {
+      ...state,
+      goals: state.goals.filter(g => g.id !== id),
+    };
   };
 
   const markBillPaid = (billId: string, month: string): Transaction | null => {
@@ -962,9 +1075,15 @@ export function createFinanceStore(initialState?: FinanceState): FinanceStore {
     setBaseCurrency,
     updateRates,
     addTransaction,
+    updateTransaction,
     deleteTransaction,
     addCategory,
     addRecurringBill,
+    updateRecurringBill,
+    deleteRecurringBill,
+    addDreamGoal,
+    updateDreamGoal,
+    deleteDreamGoal,
     markBillPaid,
     depositToGoal: depositToGoalAction,
     resetToDemoData,

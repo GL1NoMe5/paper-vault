@@ -720,4 +720,78 @@ describe('Tier 1: Feature Coverage E2E Suite', () => {
       expect(res.updatedGoal.celebratedMilestones).toEqual([25]);
     });
   });
+
+  // ==========================================================================
+  // Module F7: Universal Edit & Delete CRUD Across All Entities
+  // ==========================================================================
+  describe('F7: Universal Edit & Delete CRUD (Transactions, Bills, Goals)', () => {
+    it('TEST-T1-F7-01: Update and Delete Transaction in Store', () => {
+      const store = createFinanceStore();
+      const initialCount = store.getState().transactions.length;
+      const targetTx = store.getState().transactions[0];
+
+      // Update transaction
+      const updated = store.updateTransaction(targetTx.id, {
+        amount: 9999,
+        note: 'Отредактировано в тесте',
+      });
+      expect(updated).not.toBeNull();
+      expect(updated?.amount).toBe(9999);
+      expect(store.getState().transactions.find((t) => t.id === targetTx.id)?.amount).toBe(9999);
+
+      // Delete transaction
+      store.deleteTransaction(targetTx.id);
+      expect(store.getState().transactions.length).toBe(initialCount - 1);
+      expect(store.getState().transactions.find((t) => t.id === targetTx.id)).toBeUndefined();
+    });
+
+    it('TEST-T1-F7-02: Update and Delete Recurring Bill in Store', () => {
+      const store = createFinanceStore();
+      const initialBillsCount = store.getState().recurringBills.length;
+      const bill = store.getState().recurringBills[0];
+
+      // Update bill
+      const updated = store.updateRecurringBill(bill.id, {
+        title: 'Обновленная подписка',
+        amount: 1500,
+        dayOfMonth: 28,
+      });
+      expect(updated).not.toBeNull();
+      expect(updated?.title).toBe('Обновленная подписка');
+      expect(updated?.amount).toBe(1500);
+      expect(updated?.dayOfMonth).toBe(28);
+
+      // Delete bill
+      store.deleteRecurringBill(bill.id);
+      expect(store.getState().recurringBills.length).toBe(initialBillsCount - 1);
+      expect(store.getState().recurringBills.find((b) => b.id === bill.id)).toBeUndefined();
+    });
+
+    it('TEST-T1-F7-03: Add, Update, and Delete Dream Goal in Store', () => {
+      const store = createFinanceStore();
+
+      // Add Goal
+      const newGoal = store.addDreamGoal({
+        title: 'Путешествие в горы',
+        targetAmount: 80000,
+        currency: 'RUB',
+        color: '#A3C9A8',
+      });
+      expect(newGoal.id).toBeDefined();
+      expect(store.getState().goals.find((g) => g.id === newGoal.id)).toBeDefined();
+
+      // Update Goal
+      const updated = store.updateDreamGoal(newGoal.id, {
+        savedAmount: 40000, // 50%
+      });
+      expect(updated).not.toBeNull();
+      expect(updated?.savedAmount).toBe(40000);
+      expect(updated?.celebratedMilestones).toContain(25);
+      expect(updated?.celebratedMilestones).toContain(50);
+
+      // Delete Goal
+      store.deleteDreamGoal(newGoal.id);
+      expect(store.getState().goals.find((g) => g.id === newGoal.id)).toBeUndefined();
+    });
+  });
 });

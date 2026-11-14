@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 import { PlannerProvider, usePlanner, loadStateFromStorage, STORAGE_KEY } from '../context/PlannerContext';
 import { groupTransactionsByDate, formatTransactionTime } from '../utils/date';
@@ -11,6 +11,7 @@ import { HourlyIncomeSheet } from '../components/journal/HourlyIncomeSheet';
 import { TransactionRow } from '../components/journal/TransactionRow';
 import { JournalFeed } from '../components/journal/JournalFeed';
 import { JournalView } from '../components/journal/JournalView';
+import { EditTransactionDrawer } from '../components/journal/EditTransactionDrawer';
 import { App } from '../App';
 import { DEFAULT_RATES_RUB } from '../utils/currency';
 import { Category, Transaction } from '../types';
@@ -602,6 +603,191 @@ describe('Tab 1 ("Дневник") & State Persistence Integration Tests', () =>
       expect(screen.getByTestId('balance-card')).toBeInTheDocument();
       expect(screen.getByTestId('category-chips-grid')).toBeInTheDocument();
       expect(screen.getByTestId('open-hourly-sheet-btn')).toBeInTheDocument();
+    });
+  });
+
+  describe('Universal Edit & Delete CRUD (Tab 1: Дневник)', () => {
+    it('context updateTransaction modifies amount, category, note and syncs to storage', () => {
+      let contextRef: any;
+      const TestConsumer: React.FC = () => {
+        contextRef = usePlanner();
+        return (
+          <div>
+            <span data-testid="tx-amount">{contextRef.state.transactions[0].amount}</span>
+            <span data-testid="tx-category">{contextRef.state.transactions[0].category}</span>
+          </div>
+        );
+      };
+
+      render(
+        <PlannerProvider>
+          <TestConsumer />
+        </PlannerProvider>
+      );
+
+      const firstTxId = contextRef.state.transactions[0].id;
+      act(() => {
+        contextRef.updateTransaction(firstTxId, {
+          amount: 1234,
+          category: 'Шопинг',
+          note: 'Новая кофта',
+        });
+      });
+
+      expect(screen.getByTestId('tx-amount')).toHaveTextContent('1234');
+      expect(screen.getByTestId('tx-category')).toHaveTextContent('Шопинг');
+
+      const stored = loadStateFromStorage(STORAGE_KEY);
+      const storedTx = stored?.transactions.find((t: Transaction) => t.id === firstTxId);
+      expect(storedTx?.amount).toBe(1234);
+      expect(storedTx?.category).toBe('Шопинг');
+    });
+
+    it('TransactionRow renders edit button and invokes onEdit callback', () => {
+      const mockTx: Transaction = {
+        id: 'tx-test-edit',
+        type: 'expense',
+        amount: 850,
+        currency: 'RUB',
+        category: 'Кафе и кофе',
+        date: '2026-11-14T10:00:00Z',
+        createdAt: '2026-11-14T10:00:00Z',
+      };
+      const handleEdit = vi.fn();
+      const handleDelete = vi.fn();
+
+      render(
+        <TransactionRow
+          transaction={mockTx}
+          baseCurrency="RUB"
+          rates={DEFAULT_RATES_RUB}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+        />
+      );
+
+      const editBtn = screen.getByTestId('tx-edit-tx-test-edit');
+      expect(editBtn).toBeInTheDocument();
+      expect(editBtn).toHaveClass('min-h-[44px]');
+      expect(editBtn).toHaveClass('min-w-[44px]');
+
+      fireEvent.click(editBtn);
+      expect(handleEdit).toHaveBeenCalledWith(mockTx);
+    });
+
+    it('EditTransactionDrawer renders prefilled data, modifies fields, and saves', () => {
+      const mockTx: Transaction = {
+        id: 'tx-edit-drawer',
+        type: 'expense',
+        amount: 450,
+        currency: 'RUB',
+        category: 'Еда и продукты',
+        date: '2026-11-14T10:00:00Z',
+        note: 'Перекус',
+        createdAt: '2026-11-14T10:00:00Z',
+      };
+      const mockCategories: Category[] = [
+        { id: 'cat-1', name: 'Еда и продукты', icon: 'ShoppingCart', color: '#A3C9A8', type: 'expense' },
+        { id: 'cat-2', name: 'Шопинг', icon: 'ShoppingBag', color: '#F4A28C', type: 'expense' },
+      ];
+      const handleUpdate = vi.fn();
+      const handleDelete = vi.fn();
+      const handleClose = vi.fn();
+
+      render(
+        <EditTransactionDrawer
+          isOpen={true}
+          onClose={handleClose}
+          transaction={mockTx}
+          baseCurrency="RUB"
+          categories={mockCategories}
+          onUpdateTransaction={handleUpdate}
+          onDeleteTransaction={handleDelete}
+        />
+      );
+
+      expect(screen.getByTestId('edit-tx-container')).toBeInTheDocument();
+      const amountInput = screen.getByTestId('edit-tx-amount-input') as HTMLInputElement;
+      expect(amountInput.value).toBe('450');
+
+      // Change amount to 990
+      fireEvent.change(amountInput, { target: { value: '990' } });
+
+      // Change category to 'Шопинг'
+      fireEvent.click(screen.getByTestId('edit-tx-category-Шопинг'));
+
+      // Submit
+      fireEvent.click(screen.getByTestId('edit-tx-submit-btn'));
+
+      expect(handleUpdate).toHaveBeenCalledWith('tx-edit-drawer', expect.objectContaining({
+        amount: 990,
+        category: 'Шопинг',
+      }));
+      expect(handleClose).toHaveBeenCalled();
+    });
+
+    it('EditTransactionDrawer triggers deletion on delete button click', () => {
+      const mockTx: Transaction = {
+        id: 'tx-del-drawer',
+        type: 'expense',
+        amount: 500,
+        currency: 'RUB',
+        category: 'Транспорт',
+        date: '2026-11-14T10:00:00Z',
+        createdAt: '2026-11-14T10:00:00Z',
+      };
+      const handleUpdate = vi.fn();
+      const handleDelete = vi.fn();
+      const handleClose = vi.fn();
+
+      render(
+        <EditTransactionDrawer
+          isOpen={true}
+          onClose={handleClose}
+          transaction={mockTx}
+          baseCurrency="RUB"
+          categories={[]}
+          onUpdateTransaction={handleUpdate}
+          onDeleteTransaction={handleDelete}
+        />
+      );
+
+      const deleteBtn = screen.getByTestId('edit-tx-delete-btn');
+      expect(deleteBtn).toBeInTheDocument();
+      fireEvent.click(deleteBtn);
+
+      expect(handleDelete).toHaveBeenCalledWith('tx-del-drawer');
+      expect(handleClose).toHaveBeenCalled();
+    });
+
+    it('full Tab 1 integration: editing transaction updates row in JournalView', () => {
+      render(
+        <PlannerProvider>
+          <JournalView />
+        </PlannerProvider>
+      );
+
+      // In initial demo data, tx-4 is coffee (420 RUB)
+      const editBtn = screen.getByTestId('tx-edit-tx-4');
+      expect(editBtn).toBeInTheDocument();
+
+      // Click edit
+      fireEvent.click(editBtn);
+
+      // Drawer is open
+      expect(screen.getByTestId('edit-tx-container')).toBeInTheDocument();
+      const amountInput = screen.getByTestId('edit-tx-amount-input');
+      expect(amountInput).toHaveValue('420');
+
+      // Update amount to 520
+      fireEvent.change(amountInput, { target: { value: '520' } });
+
+      // Save
+      fireEvent.click(screen.getByTestId('edit-tx-submit-btn'));
+
+      // Drawer closed and row displays updated amount 520
+      expect(screen.queryByTestId('edit-tx-container')).not.toBeInTheDocument();
+      expect(screen.getByTestId('tx-amount-tx-4')).toHaveTextContent('-520 ₽');
     });
   });
 });

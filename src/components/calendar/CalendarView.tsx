@@ -13,13 +13,16 @@ import { UpcomingBillsBanner } from './UpcomingBillsBanner';
 import { PlannerCalendar } from './PlannerCalendar';
 import { SubscriptionsList } from './SubscriptionsList';
 import { AddSubscriptionDrawer } from './AddSubscriptionDrawer';
+import { EditSubscriptionDrawer } from './EditSubscriptionDrawer';
 import { Plus, Receipt } from 'lucide-react';
 import { motion } from 'motion/react';
 import NumberFlow from '@number-flow/react';
+import { RecurringBill } from '../../types';
 
 export const CalendarView: React.FC = () => {
-  const { state, markBillPaid, addRecurringBill } = usePlanner();
+  const { state, markBillPaid, addRecurringBill, updateRecurringBill, deleteRecurringBill } = usePlanner();
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
+  const [editingBill, setEditingBill] = useState<RecurringBill | null>(null);
 
   const currentDate = new Date();
   const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
@@ -113,6 +116,8 @@ export const CalendarView: React.FC = () => {
         baseCurrency={state.baseCurrency}
         rates={state.rates}
         onPayBill={handlePayBill}
+        onEditBill={setEditingBill}
+        onDeleteBill={deleteRecurringBill}
       />
 
       {/* 5. Add Subscription Vaul Drawer */}
@@ -121,6 +126,16 @@ export const CalendarView: React.FC = () => {
         onClose={() => setIsAddDrawerOpen(false)}
         baseCurrency={state.baseCurrency}
         onAddBill={addRecurringBill}
+      />
+
+      {/* 6. Edit Subscription Vaul Drawer */}
+      <EditSubscriptionDrawer
+        isOpen={editingBill !== null}
+        onClose={() => setEditingBill(null)}
+        bill={editingBill}
+        baseCurrency={state.baseCurrency}
+        onUpdateBill={updateRecurringBill}
+        onDeleteBill={deleteRecurringBill}
       />
     </section>
   );

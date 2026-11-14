@@ -8,7 +8,7 @@ import React from 'react';
 import { Transaction, CurrencyCode, ExchangeRates, Category } from '../../types';
 import { formatCurrency, convertCurrency } from '../../utils/currency';
 import { CategoryIcon } from '../ui/CategoryIcon';
-import { Trash2, Calculator } from 'lucide-react';
+import { Trash2, Calculator, Pencil } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export interface TransactionRowProps {
@@ -16,6 +16,7 @@ export interface TransactionRowProps {
   baseCurrency: CurrencyCode;
   rates: ExchangeRates;
   onDelete: (id: string) => void;
+  onEdit?: (transaction: Transaction) => void;
   categories?: Category[];
 }
 
@@ -39,6 +40,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
   baseCurrency,
   rates,
   onDelete,
+  onEdit,
   categories = [],
 }) => {
   const isIncome = transaction.type === 'income';
@@ -129,6 +131,20 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
             </p>
           )}
         </div>
+
+        {/* Edit Button (Touch Target >= 44px) */}
+        {onEdit && (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.96 }}
+            data-testid={`tx-edit-${transaction.id}`}
+            onClick={() => onEdit(transaction)}
+            aria-label={`Редактировать запись: ${transaction.category} ${formattedAmount}`}
+            className="min-h-[44px] min-w-[44px] w-11 h-11 rounded-xl flex items-center justify-center text-[#8C7F70] hover:text-[#2F5233] hover:bg-[#A3C9A8]/20 transition-all cursor-pointer opacity-70 group-hover:opacity-100"
+          >
+            <Pencil className="w-4 h-4" />
+          </motion.button>
+        )}
 
         {/* Delete Button (Touch Target >= 44px) */}
         <motion.button

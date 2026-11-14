@@ -6,7 +6,7 @@
 import React from 'react';
 import { RecurringBill, CurrencyCode, ExchangeRates } from '../../types';
 import { formatCurrency, convertCurrency } from '../../utils/currency';
-import { Check, Clock, CreditCard } from 'lucide-react';
+import { Check, Clock, CreditCard, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export interface SubscriptionsListProps {
@@ -15,6 +15,8 @@ export interface SubscriptionsListProps {
   baseCurrency: CurrencyCode;
   rates: ExchangeRates;
   onPayBill: (billId: string, monthKey: string) => void;
+  onEditBill?: (bill: RecurringBill) => void;
+  onDeleteBill?: (billId: string) => void;
 }
 
 export const SubscriptionsList: React.FC<SubscriptionsListProps> = ({
@@ -23,6 +25,8 @@ export const SubscriptionsList: React.FC<SubscriptionsListProps> = ({
   baseCurrency,
   rates,
   onPayBill,
+  onEditBill,
+  onDeleteBill,
 }) => {
   return (
     <div data-testid="subscriptions-list-container" className="space-y-3">
@@ -117,6 +121,32 @@ export const SubscriptionsList: React.FC<SubscriptionsListProps> = ({
                     >
                       <Clock className="w-4 h-4" />
                       <span>Оплатить</span>
+                    </motion.button>
+                  )}
+
+                  {onEditBill && (
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.94 }}
+                      data-testid={`subscription-edit-btn-${bill.id}`}
+                      onClick={() => onEditBill(bill)}
+                      aria-label={`Редактировать подписку: ${bill.title}`}
+                      className="min-h-[44px] min-w-[44px] w-11 h-11 rounded-xl flex items-center justify-center text-[#8C7F70] hover:text-[#6E5611] hover:bg-[#F9E29C]/25 transition-all cursor-pointer opacity-70 hover:opacity-100"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </motion.button>
+                  )}
+
+                  {onDeleteBill && (
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.94 }}
+                      data-testid={`subscription-delete-btn-${bill.id}`}
+                      onClick={() => onDeleteBill(bill.id)}
+                      aria-label={`Удалить подписку: ${bill.title}`}
+                      className="min-h-[44px] min-w-[44px] w-11 h-11 rounded-xl flex items-center justify-center text-[#8C7F70] hover:text-[#7A2E1D] hover:bg-[#F4A28C]/20 transition-all cursor-pointer opacity-70 hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </motion.button>
                   )}
                 </div>

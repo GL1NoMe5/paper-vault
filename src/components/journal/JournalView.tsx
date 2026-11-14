@@ -12,15 +12,17 @@ import { ExpenseModal, ExpenseSavePayload } from './ExpenseModal';
 import { AddCategoryModal } from './AddCategoryModal';
 import { HourlyIncomeSheet } from './HourlyIncomeSheet';
 import { JournalFeed } from './JournalFeed';
+import { EditTransactionDrawer } from './EditTransactionDrawer';
 import { Clock } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const JournalView: React.FC = () => {
-  const { state, addTransaction, deleteTransaction, addCategory } = usePlanner();
+  const { state, addTransaction, updateTransaction, deleteTransaction, addCategory } = usePlanner();
 
   const [selectedCategoryForExpense, setSelectedCategoryForExpense] = useState<Category | null>(null);
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
   const [isHourlySheetOpen, setIsHourlySheetOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
   const handleSelectCategory = (cat: Category) => {
     setSelectedCategoryForExpense(cat);
@@ -93,6 +95,7 @@ export const JournalView: React.FC = () => {
         baseCurrency={state.baseCurrency}
         rates={state.rates}
         onDeleteTransaction={deleteTransaction}
+        onEditTransaction={setEditingTransaction}
         categories={state.categories}
       />
 
@@ -103,6 +106,17 @@ export const JournalView: React.FC = () => {
         selectedCategory={selectedCategoryForExpense}
         baseCurrency={state.baseCurrency}
         onSaveExpense={handleSaveExpense}
+      />
+
+      {/* Edit Transaction Drawer */}
+      <EditTransactionDrawer
+        isOpen={editingTransaction !== null}
+        onClose={() => setEditingTransaction(null)}
+        transaction={editingTransaction}
+        baseCurrency={state.baseCurrency}
+        categories={state.categories}
+        onUpdateTransaction={updateTransaction}
+        onDeleteTransaction={deleteTransaction}
       />
 
       {/* Custom Category Modal */}

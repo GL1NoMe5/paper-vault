@@ -126,9 +126,15 @@ export interface FinanceContextType {
   setBaseCurrency: (code: CurrencyCode) => void;
   updateRates: (newRates: ExchangeRates) => void;
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => void;
+  updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => void;
   deleteTransaction: (id: string) => void;
   addCategory: (cat: Omit<Category, 'id'>) => void;
   addRecurringBill: (bill: Omit<RecurringBill, 'id' | 'createdAt' | 'paidMonths'>) => void;
+  updateRecurringBill: (id: string, updates: Partial<Omit<RecurringBill, 'id' | 'createdAt'>>) => void;
+  deleteRecurringBill: (id: string) => void;
+  addDreamGoal: (goal: Omit<DreamGoal, 'id' | 'createdAt' | 'savedAmount' | 'celebratedMilestones'>) => void;
+  updateDreamGoal: (id: string, updates: Partial<Omit<DreamGoal, 'id' | 'createdAt'>>) => void;
+  deleteDreamGoal: (id: string) => void;
   markBillPaid: (billId: string, month: string) => void;
   depositToGoal: (goalId: string, amount: number) => { triggeredMilestone?: number };
   resetToDemoData: () => void;

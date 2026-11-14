@@ -124,8 +124,14 @@ export interface ExtendedFinanceContextType extends FinanceContextType {
     amount: number
   ) => { triggeredMilestone?: number; triggeredMilestones: number[] };
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => Transaction;
+  updateTransaction: (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt'>>) => Transaction | null;
   addCategory: (cat: Omit<Category, 'id'>) => Category;
   addRecurringBill: (bill: Omit<RecurringBill, 'id' | 'createdAt' | 'paidMonths'>) => RecurringBill;
+  updateRecurringBill: (id: string, updates: Partial<Omit<RecurringBill, 'id' | 'createdAt'>>) => RecurringBill | null;
+  deleteRecurringBill: (id: string) => void;
+  addDreamGoal: (goal: Omit<DreamGoal, 'id' | 'createdAt' | 'savedAmount' | 'celebratedMilestones'>) => DreamGoal;
+  updateDreamGoal: (id: string, updates: Partial<Omit<DreamGoal, 'id' | 'createdAt'>>) => DreamGoal | null;
+  deleteDreamGoal: (id: string) => void;
   markBillPaid: (billId: string, month: string) => Transaction | null;
 }
 
@@ -254,6 +260,41 @@ export const PlannerProvider: React.FC<PlannerProviderProps> = ({
     [storageKey]
   );
 
+  // updateTransaction
+  const updateTransaction = useCallback(
+    (id: string, updates: Partial<Omit<Transaction, 'id' | 'createdAt'>>): Transaction | null => {
+      const current = stateRef.current;
+      const index = current.transactions.findIndex((t) => t.id === id);
+      if (index === -1) return null;
+
+      const existing = current.transactions[index];
+      const sanitizedAmount =
+        updates.amount !== undefined
+          ? Math.max(0, Number.isFinite(updates.amount) ? updates.amount : existing.amount)
+          : existing.amount;
+
+      const updatedTx: Transaction = {
+        ...existing,
+        ...updates,
+        amount: sanitizedAmount,
+      };
+
+      const nextTransactions = [...current.transactions];
+      nextTransactions[index] = updatedTx;
+
+      const nextState: FinanceState = {
+        ...current,
+        transactions: nextTransactions,
+      };
+
+      stateRef.current = nextState;
+      setState(nextState);
+      saveStateToStorage(nextState, storageKey);
+      return updatedTx;
+    },
+    [storageKey]
+  );
+
   // 5. addCategory
   const addCategory = useCallback(
     (cat: Omit<Category, 'id'>): Category => {
@@ -302,6 +343,63 @@ export const PlannerProvider: React.FC<PlannerProviderProps> = ({
       saveStateToStorage(nextState, storageKey);
 
       return newBill;
+    },
+    [storageKey]
+  );
+
+  // updateRecurringBill
+  const updateRecurringBill = useCallback(
+    (id: string, updates: Partial<Omit<RecurringBill, 'id' | 'createdAt'>>): RecurringBill | null => {
+      const current = stateRef.current;
+      const index = current.recurringBills.findIndex((b) => b.id === id);
+      if (index === -1) return null;
+
+      const existing = current.recurringBills[index];
+      const sanitizedAmount =
+        updates.amount !== undefined
+          ? Math.max(0, Number.isFinite(updates.amount) ? updates.amount : existing.amount)
+          : existing.amount;
+
+      const sanitizedDay =
+        updates.dayOfMonth !== undefined
+          ? Math.min(31, Math.max(1, Math.round(updates.dayOfMonth)))
+          : existing.dayOfMonth;
+
+      const updatedBill: RecurringBill = {
+        ...existing,
+        ...updates,
+        amount: sanitizedAmount,
+        dayOfMonth: sanitizedDay,
+      };
+
+      const nextBills = [...current.recurringBills];
+      nextBills[index] = updatedBill;
+
+      const nextState: FinanceState = {
+        ...current,
+        recurringBills: nextBills,
+      };
+
+      stateRef.current = nextState;
+      setState(nextState);
+      saveStateToStorage(nextState, storageKey);
+      return updatedBill;
+    },
+    [storageKey]
+  );
+
+  // deleteRecurringBill
+  const deleteRecurringBill = useCallback(
+    (id: string) => {
+      const current = stateRef.current;
+      const nextState: FinanceState = {
+        ...current,
+        recurringBills: current.recurringBills.filter((b) => b.id !== id),
+      };
+
+      stateRef.current = nextState;
+      setState(nextState);
+      saveStateToStorage(nextState, storageKey);
     },
     [storageKey]
   );
@@ -381,6 +479,96 @@ export const PlannerProvider: React.FC<PlannerProviderProps> = ({
     [storageKey]
   );
 
+  // addDreamGoal
+  const addDreamGoal = useCallback(
+    (goal: Omit<DreamGoal, 'id' | 'createdAt' | 'savedAmount' | 'celebratedMilestones'>): DreamGoal => {
+      const current = stateRef.current;
+      const id = `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const createdAt = new Date().toISOString();
+      const sanitizedTarget = Math.max(1, Number.isFinite(goal.targetAmount) ? goal.targetAmount : 1);
+
+      const newGoal: DreamGoal = {
+        ...goal,
+        id,
+        targetAmount: sanitizedTarget,
+        savedAmount: 0,
+        celebratedMilestones: [],
+        createdAt,
+      };
+
+      const nextState: FinanceState = {
+        ...current,
+        goals: [...current.goals, newGoal],
+      };
+
+      stateRef.current = nextState;
+      setState(nextState);
+      saveStateToStorage(nextState, storageKey);
+      return newGoal;
+    },
+    [storageKey]
+  );
+
+  // updateDreamGoal
+  const updateDreamGoal = useCallback(
+    (id: string, updates: Partial<Omit<DreamGoal, 'id' | 'createdAt'>>): DreamGoal | null => {
+      const current = stateRef.current;
+      const index = current.goals.findIndex((g) => g.id === id);
+      if (index === -1) return null;
+
+      const existing = current.goals[index];
+      const sanitizedTarget =
+        updates.targetAmount !== undefined
+          ? Math.max(1, Number.isFinite(updates.targetAmount) ? updates.targetAmount : existing.targetAmount)
+          : existing.targetAmount;
+      const sanitizedSaved =
+        updates.savedAmount !== undefined
+          ? Math.max(0, Number.isFinite(updates.savedAmount) ? updates.savedAmount : existing.savedAmount)
+          : existing.savedAmount;
+
+      const pct = (sanitizedSaved / sanitizedTarget) * 100;
+      const celebrated = [25, 50, 75, 100].filter((m) => pct >= m);
+
+      const updatedGoal: DreamGoal = {
+        ...existing,
+        ...updates,
+        targetAmount: sanitizedTarget,
+        savedAmount: sanitizedSaved,
+        celebratedMilestones: updates.celebratedMilestones ?? celebrated,
+      };
+
+      const nextGoals = [...current.goals];
+      nextGoals[index] = updatedGoal;
+
+      const nextState: FinanceState = {
+        ...current,
+        goals: nextGoals,
+      };
+
+      stateRef.current = nextState;
+      setState(nextState);
+      saveStateToStorage(nextState, storageKey);
+      return updatedGoal;
+    },
+    [storageKey]
+  );
+
+  // deleteDreamGoal
+  const deleteDreamGoal = useCallback(
+    (id: string) => {
+      const current = stateRef.current;
+      const nextState: FinanceState = {
+        ...current,
+        goals: current.goals.filter((g) => g.id !== id),
+      };
+
+      stateRef.current = nextState;
+      setState(nextState);
+      saveStateToStorage(nextState, storageKey);
+    },
+    [storageKey]
+  );
+
   // 9. resetToDemoData
   const resetToDemoData = useCallback(() => {
     const fresh = createInitialState();
@@ -395,9 +583,15 @@ export const PlannerProvider: React.FC<PlannerProviderProps> = ({
       setBaseCurrency,
       updateRates,
       addTransaction,
+      updateTransaction,
       deleteTransaction,
       addCategory,
       addRecurringBill,
+      updateRecurringBill,
+      deleteRecurringBill,
+      addDreamGoal,
+      updateDreamGoal,
+      deleteDreamGoal,
       markBillPaid,
       depositToGoal,
       resetToDemoData,
@@ -407,9 +601,15 @@ export const PlannerProvider: React.FC<PlannerProviderProps> = ({
       setBaseCurrency,
       updateRates,
       addTransaction,
+      updateTransaction,
       deleteTransaction,
       addCategory,
       addRecurringBill,
+      updateRecurringBill,
+      deleteRecurringBill,
+      addDreamGoal,
+      updateDreamGoal,
+      deleteDreamGoal,
       markBillPaid,
       depositToGoal,
       resetToDemoData,

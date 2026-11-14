@@ -7,7 +7,7 @@
 import React from 'react';
 import { DreamGoal, CurrencyCode } from '../../types';
 import { getCurrencySymbol, formatCurrency } from '../../utils/currency';
-import { Trophy, Plus, Check, Flag } from 'lucide-react';
+import { Trophy, Plus, Check, Flag, Pencil, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import NumberFlow from '@number-flow/react';
 
@@ -15,6 +15,8 @@ export interface GoalCardProps {
   goal: DreamGoal;
   baseCurrency: CurrencyCode;
   onOpenDeposit: (goal: DreamGoal) => void;
+  onEditGoal?: (goal: DreamGoal) => void;
+  onDeleteGoal?: (goalId: string) => void;
   className?: string;
 }
 
@@ -24,6 +26,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   goal,
   baseCurrency,
   onOpenDeposit,
+  onEditGoal,
+  onDeleteGoal,
   className = '',
 }) => {
   const symbol = getCurrencySymbol(goal.currency || baseCurrency);
@@ -41,11 +45,39 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         <span className="washi-tape washi-tape-coral text-xs font-bold text-[#7A2E1D]">
           Цель накоплений
         </span>
-        <div className="flex items-center gap-1.5 text-xs font-heading font-bold text-[#7A2E1D] bg-[#F4A28C]/20 px-2.5 py-0.5 rounded-full">
-          <Trophy className="w-3.5 h-3.5" />
-          <span data-testid={`goal-percentage-${goal.id}`}>
-            <NumberFlow value={percentage} suffix="%" />
-          </span>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-heading font-bold text-[#7A2E1D] bg-[#F4A28C]/20 px-2.5 py-0.5 rounded-full">
+            <Trophy className="w-3.5 h-3.5" />
+            <span data-testid={`goal-percentage-${goal.id}`}>
+              <NumberFlow value={percentage} suffix="%" />
+            </span>
+          </div>
+
+          {onEditGoal && (
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.94 }}
+              data-testid={`goal-edit-btn-${goal.id}`}
+              onClick={() => onEditGoal(goal)}
+              aria-label={`Редактировать цель: ${goal.title}`}
+              className="min-h-[44px] min-w-[44px] w-11 h-11 rounded-xl flex items-center justify-center text-[#8C7F70] hover:text-[#2F5233] hover:bg-[#A3C9A8]/20 transition-all cursor-pointer"
+            >
+              <Pencil className="w-4 h-4" />
+            </motion.button>
+          )}
+
+          {onDeleteGoal && (
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.94 }}
+              data-testid={`goal-delete-btn-${goal.id}`}
+              onClick={() => onDeleteGoal(goal.id)}
+              aria-label={`Удалить цель: ${goal.title}`}
+              className="min-h-[44px] min-w-[44px] w-11 h-11 rounded-xl flex items-center justify-center text-[#8C7F70] hover:text-[#7A2E1D] hover:bg-[#F4A28C]/20 transition-all cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+            </motion.button>
+          )}
         </div>
       </div>
 

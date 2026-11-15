@@ -198,3 +198,48 @@ export function parseCurrencyInput(input: string): number | null {
 export function isValidRate(rate: number): boolean {
   return Number.isFinite(rate) && rate > 0;
 }
+
+/**
+ * Live multi-currency display helper.
+ * Provides original amount, converted base amount, formatted strings and approximate badge texts.
+ */
+export interface DualCurrencyDisplay {
+  originalFormatted: string;      // e.g. "300 000 ₸"
+  convertedAmount: number | null;  // e.g. 15200
+  convertedFormatted: string | null; // e.g. "15 200 Kč"
+  approximateText: string | null; // e.g. "≈ 15 200 Kč"
+  combinedText: string;           // e.g. "300 000 ₸ (≈ 15 200 Kč)"
+  isDifferent: boolean;           // true if currency !== baseCurrency
+}
+
+export function getDualCurrencyDisplay(
+  amount: number,
+  currency: CurrencyCode,
+  baseCurrency: CurrencyCode,
+  rates: ExchangeRates
+): DualCurrencyDisplay {
+  const originalFormatted = formatCurrency(amount, currency);
+  if (currency === baseCurrency || !Number.isFinite(amount) || amount === 0) {
+    return {
+      originalFormatted,
+      convertedAmount: null,
+      convertedFormatted: null,
+      approximateText: null,
+      combinedText: originalFormatted,
+      isDifferent: false,
+    };
+  }
+
+  const converted = convertCurrency(amount, currency, baseCurrency, rates);
+  const convertedFormatted = formatCurrency(converted, baseCurrency);
+  const approximateText = `≈ ${convertedFormatted}`;
+  return {
+    originalFormatted,
+    convertedAmount: converted,
+    convertedFormatted,
+    approximateText,
+    combinedText: `${originalFormatted} (${approximateText})`,
+    isDifferent: true,
+  };
+}
+

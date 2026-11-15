@@ -25,6 +25,23 @@ export interface CalculationMetadata {
   formula: string; // e.g. "15 ч. × 2 500 = 37 500"
 }
 
+export interface WorkDetails {
+  hourlyRate: number;
+  hoursWorked: number;
+  grossAmount: number;
+  taxPercent: number; // e.g. 15 for 15%
+  taxAmount: number;  // grossAmount * (taxPercent / 100)
+  netAmount: number;  // grossAmount - taxAmount
+}
+
+export interface FamilyTransferDetails {
+  sender: string; // e.g. "❤️ Мама", "👨 Папа"
+  originalAmount: number;
+  originalCurrency: CurrencyCode;
+  convertedAmount?: number;
+  targetCurrency?: CurrencyCode;
+}
+
 export interface Transaction {
   id: string;
   type: TransactionType;
@@ -34,6 +51,8 @@ export interface Transaction {
   date: string; // ISO string YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ
   note?: string;
   calculationMetadata?: CalculationMetadata;
+  workDetails?: WorkDetails;
+  familyDetails?: FamilyTransferDetails;
   subscriptionId?: string; // Set when auto-generated from paying a recurring bill
   createdAt: string;
 }
@@ -75,8 +94,9 @@ export interface DreamGoal {
   createdAt: string;
 }
 
-// 6. Navigation Tabs
-export type Tab = 'journal' | 'calendar' | 'analytics' | 'goals';
+// 6. Navigation Tabs & Theme
+export type Tab = 'journal' | 'work' | 'family' | 'calendar' | 'analytics' | 'goals';
+export type Theme = 'light' | 'dark';
 
 // 7. Smart Savings Advisor Tips
 export type SmartTipSeverity = 'warning' | 'info' | 'success';
@@ -123,6 +143,8 @@ export interface FinanceState {
 // 11. Context API Interface
 export interface FinanceContextType {
   state: FinanceState;
+  theme: Theme;
+  toggleTheme: () => void;
   setBaseCurrency: (code: CurrencyCode) => void;
   updateRates: (newRates: ExchangeRates) => void;
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt'>) => void;

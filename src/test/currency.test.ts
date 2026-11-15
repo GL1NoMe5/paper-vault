@@ -12,6 +12,7 @@ import {
   getCurrencyFlag,
   parseCurrencyInput,
   isValidRate,
+  getDualCurrencyDisplay,
 } from '../utils/currency';
 import { ExchangeRates } from '../types';
 
@@ -282,6 +283,62 @@ describe('Multi-Currency Engine (src/utils/currency.ts)', () => {
       expect(isValidRate(-1)).toBe(false);
       expect(isValidRate(NaN)).toBe(false);
       expect(isValidRate(Infinity)).toBe(false);
+    });
+  });
+
+  describe('Live Dual Currency Display Helper (getDualCurrencyDisplay)', () => {
+    const rates: ExchangeRates = {
+      RUB: 1.0,
+      USD: 92.5,
+      EUR: 100.5,
+      KZT: 0.188,
+      CZK: 3.95,
+    };
+
+    it('returns isDifferent: false when currency matches baseCurrency', () => {
+      const display = getDualCurrencyDisplay(5000, 'RUB', 'RUB', rates);
+      expect(display.isDifferent).toBe(false);
+      expect(display.convertedAmount).toBeNull();
+      expect(display.convertedFormatted).toBeNull();
+      expect(display.approximateText).toBeNull();
+      expect(display.originalFormatted).toBe('5 000 ₽');
+      expect(display.combinedText).toBe('5 000 ₽');
+    });
+
+    it('returns isDifferent: false when amount is 0 or non-finite', () => {
+      const displayZero = getDualCurrencyDisplay(0, 'USD', 'RUB', rates);
+      expect(displayZero.isDifferent).toBe(false);
+      expect(displayZero.convertedAmount).toBeNull();
+
+      const displayNaN = getDualCurrencyDisplay(NaN, 'USD', 'RUB', rates);
+      expect(displayNaN.isDifferent).toBe(false);
+      expect(displayNaN.convertedAmount).toBeNull();
+    });
+
+    it('calculates live conversion and formatted approximate badge when currency differs from baseCurrency', () => {
+      // 100 USD to RUB (100 * 92.5 = 9250 RUB)
+      const displayUsd = getDualCurrencyDisplay(100, 'USD', 'RUB', rates);
+      expect(displayUsd.isDifferent).toBe(true);
+      expect(displayUsd.originalFormatted).toBe('100 $');
+      expect(displayUsd.convertedAmount).toBe(9250);
+      expect(displayUsd.convertedFormatted).toBe('9 250 ₽');
+      expect(displayUsd.approximateText).toBe('≈ 9 250 ₽');
+      expect(displayUsd.combinedText).toBe('100 $ (≈ 9 250 ₽)');
+    });
+
+    it('correctly calculates KZT to CZK conversion per user prompt requirement', () => {
+      // 300 000 KZT to CZK:
+      // rates relative to RUB: KZT = 0.188, CZK = 3.95
+      // 300000 * (0.188 / 3.95) = 14278.48...
+      // Or if CZK base rates are used:
+      const czkRates = rebaseRates(rates, 'CZK');
+      const displayKzt = getDualCurrencyDisplay(300000, 'KZT', 'CZK', czkRates);
+      expect(displayKzt.isDifferent).toBe(true);
+      expect(displayKzt.originalFormatted).toBe('300 000 ₸');
+      expect(displayKzt.convertedAmount).toBeGreaterThan(14000);
+      expect(displayKzt.convertedFormatted).toContain('Kč');
+      expect(displayKzt.approximateText).toContain('≈');
+      expect(displayKzt.combinedText).toContain('300 000 ₸');
     });
   });
 });

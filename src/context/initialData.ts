@@ -117,6 +117,14 @@ export const DEFAULT_CATEGORIES: Category[] = [
     type: 'income',
     isCustom: false,
   },
+  {
+    id: 'cat-family',
+    name: 'Помощь родителей',
+    icon: 'Heart',
+    color: '#F2C6CE',
+    type: 'income',
+    isCustom: false,
+  },
 ];
 
 /**
@@ -133,6 +141,14 @@ export const DEFAULT_TRANSACTIONS: Transaction[] = [
     category: 'Основная работа',
     date: '2026-11-05T09:00:00Z',
     note: 'Аванс за ноябрь',
+    workDetails: {
+      hourlyRate: 2500,
+      hoursWorked: 30,
+      grossAmount: 75000,
+      taxPercent: 0,
+      taxAmount: 0,
+      netAmount: 75000,
+    },
     createdAt: '2026-11-05T09:00:00Z',
   },
   {

@@ -21,11 +21,29 @@ import {
   FinanceState,
   RecurringBill,
   Transaction,
+  Theme,
 } from '../types';
 import { rebaseRates, roundTo } from '../utils/currency';
 import { createInitialState } from './initialData';
 
 export const STORAGE_KEY = 'money_tracker_finance_state_v1';
+export const THEME_STORAGE_KEY = 'money_tracker_theme_v1';
+
+/**
+ * Safely loads theme from localStorage.
+ */
+export function loadThemeFromStorage(key: string = THEME_STORAGE_KEY): Theme {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return 'light';
+    }
+    const val = window.localStorage.getItem(key);
+    if (val === 'dark' || val === 'light') return val;
+    return 'light';
+  } catch {
+    return 'light';
+  }
+}
 
 /**
  * Safely loads state from localStorage with validation.
@@ -174,6 +192,38 @@ export const PlannerProvider: React.FC<PlannerProviderProps> = ({
   useEffect(() => {
     saveStateToStorage(state, storageKey);
   }, [state, storageKey]);
+
+  // Theme state & DOM synchronization
+  const [theme, setTheme] = useState<Theme>(() => loadThemeFromStorage());
+
+  useEffect(() => {
+    try {
+      if (typeof document !== 'undefined') {
+        const root = document.documentElement;
+        if (theme === 'dark') {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+        let metaTheme = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+        if (!metaTheme) {
+          metaTheme = document.createElement('meta');
+          metaTheme.name = 'theme-color';
+          document.head.appendChild(metaTheme);
+        }
+        metaTheme.content = theme === 'dark' ? '#1C1917' : '#FAF6F0';
+      }
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+      }
+    } catch (err) {
+      console.warn('Failed to apply theme:', err);
+    }
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  }, []);
 
   // 1. setBaseCurrency
   const setBaseCurrency = useCallback(
@@ -580,6 +630,8 @@ export const PlannerProvider: React.FC<PlannerProviderProps> = ({
   const contextValue: ExtendedFinanceContextType = useMemo(
     () => ({
       state,
+      theme,
+      toggleTheme,
       setBaseCurrency,
       updateRates,
       addTransaction,
@@ -598,6 +650,8 @@ export const PlannerProvider: React.FC<PlannerProviderProps> = ({
     }),
     [
       state,
+      theme,
+      toggleTheme,
       setBaseCurrency,
       updateRates,
       addTransaction,

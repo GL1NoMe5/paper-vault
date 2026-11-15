@@ -43,9 +43,11 @@ describe('Layout Components (AppLayout, Header, BottomNav)', () => {
   });
 
   describe('BottomNav Component', () => {
-    it('renders all 4 tabs with Russian labels and accessible tablist semantics', () => {
+    it('renders all 6 tabs with Russian labels and accessible tablist semantics', () => {
       render(<BottomNav activeTab="journal" onTabChange={vi.fn()} />);
       expect(screen.getByText('Дневник')).toBeInTheDocument();
+      expect(screen.getByText('Работа')).toBeInTheDocument();
+      expect(screen.getByText('Семья')).toBeInTheDocument();
       expect(screen.getByText('Календарь')).toBeInTheDocument();
       expect(screen.getByText('Аналитика')).toBeInTheDocument();
       expect(screen.getByText('Мечта')).toBeInTheDocument();
@@ -53,12 +55,14 @@ describe('Layout Components (AppLayout, Header, BottomNav)', () => {
       const tablist = screen.getByRole('tablist');
       expect(tablist).toBeInTheDocument();
       const tabs = screen.getAllByRole('tab');
-      expect(tabs).toHaveLength(4);
+      expect(tabs).toHaveLength(6);
     });
 
     it('sets aria-selected="true" on active tab and "false" on inactive tabs', () => {
-      render(<BottomNav activeTab="calendar" onTabChange={vi.fn()} />);
-      expect(screen.getByTestId('tab-calendar')).toHaveAttribute('aria-selected', 'true');
+      render(<BottomNav activeTab="work" onTabChange={vi.fn()} />);
+      expect(screen.getByTestId('tab-work')).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByTestId('tab-family')).toHaveAttribute('aria-selected', 'false');
+      expect(screen.getByTestId('tab-calendar')).toHaveAttribute('aria-selected', 'false');
       expect(screen.getByTestId('tab-journal')).toHaveAttribute('aria-selected', 'false');
       expect(screen.getByTestId('tab-analytics')).toHaveAttribute('aria-selected', 'false');
       expect(screen.getByTestId('tab-goals')).toHaveAttribute('aria-selected', 'false');
@@ -67,6 +71,12 @@ describe('Layout Components (AppLayout, Header, BottomNav)', () => {
     it('calls onTabChange with correct tab id when a tab is clicked', () => {
       const handleTabChange = vi.fn();
       render(<BottomNav activeTab="journal" onTabChange={handleTabChange} />);
+      fireEvent.click(screen.getByTestId('tab-work'));
+      expect(handleTabChange).toHaveBeenCalledWith('work');
+
+      fireEvent.click(screen.getByTestId('tab-family'));
+      expect(handleTabChange).toHaveBeenCalledWith('family');
+
       fireEvent.click(screen.getByTestId('tab-analytics'));
       expect(handleTabChange).toHaveBeenCalledWith('analytics');
 

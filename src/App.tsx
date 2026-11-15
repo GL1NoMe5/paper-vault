@@ -4,6 +4,8 @@ import { PlannerProvider, usePlanner } from './context/PlannerContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { CurrencyModal } from './components/layout/CurrencyModal';
 import { JournalView } from './components/journal/JournalView';
+import { WorkView } from './components/work/WorkView';
+import { FamilyView } from './components/family/FamilyView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { GoalsView } from './components/goals/GoalsView';
@@ -27,8 +29,10 @@ const AppContent: React.FC = () => {
       baseCurrency={state.baseCurrency}
       onOpenCurrencyModal={() => setIsCurrencyModalOpen(true)}
     >
-      {/* 4 Interactive Bullet Journal Tabs */}
+      {/* 6 Interactive Bullet Journal Tabs */}
       {activeTab === 'journal' && <JournalView />}
+      {activeTab === 'work' && <WorkView />}
+      {activeTab === 'family' && <FamilyView />}
       {activeTab === 'calendar' && <CalendarView />}
       {activeTab === 'analytics' && <AnalyticsView />}
       {activeTab === 'goals' && <GoalsView />}
